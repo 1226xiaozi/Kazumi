@@ -16,42 +16,15 @@ class _CollectPosterCard extends StatelessWidget {
   final VoidCallback onOpen;
   final ValueChanged<CollectType>? onChangeType;
 
-  static const _coverRatio = 0.65;
+  static const _coverRatio = 0.8;
+  // Padding above and below the title under the cover.
+  static const _footerPadding = 8.0;
   static bool _isCompact(double width) => width < 160;
-  static double _titleHeight(TextScaler scaler, {bool compact = false}) =>
-      (scaler.scale(compact ? 13 : 14) * 2.7).ceilToDouble();
-  static double _detailsHeight(TextScaler scaler) =>
-      (scaler.scale(12) * 1.4).ceilToDouble();
-  static double _statusHeight(TextScaler scaler) =>
-      (scaler.scale(11) * 1.4).ceilToDouble();
-  static bool _stackCompactActions(double width, TextScaler scaler,
-          {required bool showRating, required bool showStatus}) =>
-      (showRating && scaler.scale(12) * 2.5 > width - 56) ||
-      (showStatus && scaler.scale(11) * 2 > width - 56);
-  static double _compactActionsHeight(double width, TextScaler scaler,
-      {required bool showRating, required bool showStatus}) {
-    final detailsHeight = (showRating ? _detailsHeight(scaler) : 0.0) +
-        (showStatus ? _statusHeight(scaler) : 0.0) +
-        (showRating && showStatus ? 2.0 : 0.0);
-    return _stackCompactActions(width, scaler,
-            showRating: showRating, showStatus: showStatus)
-        ? detailsHeight + 48
-        : detailsHeight.clamp(48.0, double.infinity);
-  }
+  static double _titleHeight(TextScaler scaler) =>
+      (scaler.scale(14) * 2.7).ceilToDouble();
 
-  static double extent(double width, TextScaler scaler,
-      {required bool showRating, required bool showStatus}) {
-    final footerHeight = _isCompact(width)
-        ? 12 +
-            _titleHeight(scaler, compact: true) +
-            _compactActionsHeight(width, scaler,
-                showRating: showRating, showStatus: showStatus)
-        : 16 +
-            (_titleHeight(scaler) +
-                    (showRating || showStatus ? 4 + _detailsHeight(scaler) : 0))
-                .clamp(48.0, double.infinity);
-    return width / _coverRatio + footerHeight;
-  }
+  static double extent(double width, TextScaler scaler) =>
+      width / _coverRatio + _footerPadding * 2 + _titleHeight(scaler);
 
   @override
   Widget build(BuildContext context) {
@@ -63,120 +36,36 @@ class _CollectPosterCard extends StatelessWidget {
     final year = DateTime.tryParse(item.airDate)?.year;
     final type = CollectType.fromValue(entry.type);
     final hasRating = showRating && item.ratingScore > 0;
-    final showDetails = showStatus || showRating;
-
-    Widget detailLine(String value, {bool status = false}) => SizedBox(
-          height: status ? _statusHeight(scaler) : _detailsHeight(scaler),
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: status ? 11 : 12,
-              height: 1.4,
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-        );
 
     return LayoutBuilder(builder: (context, constraints) {
       final compact = _isCompact(constraints.maxWidth);
       final titleBlock = ExcludeSemantics(
         child: SizedBox(
-          height: _titleHeight(scaler, compact: compact),
+          height: _titleHeight(scaler),
           child: Text(
             title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: compact ? 13 : 14,
+              fontSize: 14,
               height: 1.35,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
       );
-      final detailsBlock = ExcludeSemantics(
-        child: compact
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (showRating)
-                    detailLine(
-                        hasRating ? item.ratingScore.toStringAsFixed(1) : ''),
-                  if (showStatus) ...[
-                    if (showRating) const SizedBox(height: 2),
-                    detailLine(type.label, status: true),
-                  ],
-                ],
-              )
-            : detailLine([
-                if (hasRating) '${item.ratingScore.toStringAsFixed(1)} 分',
-                if (showStatus) type.label,
-              ].join(' · ')),
+      final menu = _CollectEntryMenu(
+        entry: entry,
+        onChanged: onChangeType,
+        overlay: true,
       );
-      final menu = _CollectEntryMenu(entry: entry, onChanged: onChangeType);
-      final footer = compact
-          ? Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: titleBlock,
-                  ),
-                  SizedBox(
-                    height: _compactActionsHeight(constraints.maxWidth, scaler,
-                        showRating: showRating, showStatus: showStatus),
-                    child: _stackCompactActions(constraints.maxWidth, scaler,
-                            showRating: showRating, showStatus: showStatus)
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 8),
-                                child: detailsBlock,
-                              ),
-                              Align(
-                                alignment: AlignmentDirectional.centerEnd,
-                                child: menu,
-                              ),
-                            ],
-                          )
-                        : Padding(
-                            padding: const EdgeInsetsDirectional.only(start: 8),
-                            child: Row(
-                              children: [Expanded(child: detailsBlock), menu],
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            )
-          : Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 0, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        titleBlock,
-                        if (showDetails) ...[
-                          const SizedBox(height: 4),
-                          detailsBlock,
-                        ],
-                      ],
-                    ),
-                  ),
-                  menu,
-                ],
-              ),
-            );
+      final footer = Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: _footerPadding,
+        ),
+        child: titleBlock,
+      );
 
       return Material(
         color: colors.surfaceContainerLow,
@@ -186,7 +75,7 @@ class _CollectPosterCard extends StatelessWidget {
           button: true,
           label: [
             title,
-            type.label,
+            if (showStatus) type.label,
             if (year != null) '$year 年',
             if (hasRating) '${item.ratingScore.toStringAsFixed(1)} 分',
           ].join('，'),
@@ -195,10 +84,18 @@ class _CollectPosterCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ExcludeSemantics(
-                  child: AspectRatio(
-                    aspectRatio: _coverRatio,
-                    child: _CollectCover(item: item),
+                AspectRatio(
+                  aspectRatio: _coverRatio,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ExcludeSemantics(child: _CollectCover(item: item)),
+                      PositionedDirectional(
+                        top: 8,
+                        end: 8,
+                        child: menu,
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(child: footer),
@@ -357,10 +254,14 @@ class _CollectEntryMenu extends StatelessWidget {
     required this.entry,
     required this.onChanged,
     this.showStatusLabel = false,
+    this.overlay = false,
   });
   final CollectedBangumi entry;
   final ValueChanged<CollectType>? onChanged;
   final bool showStatusLabel;
+
+  /// Draws the button as a translucent circle floating over the cover.
+  final bool overlay;
 
   @override
   Widget build(BuildContext context) {
@@ -393,6 +294,22 @@ class _CollectEntryMenu extends StatelessWidget {
         ),
       ],
       builder: (context, toggle) {
+        if (overlay) {
+          return IconButton(
+            tooltip: '管理《$title》 · ${type.label}',
+            onPressed: toggle,
+            style: IconButton.styleFrom(
+              foregroundColor: Colors.white,
+              disabledForegroundColor: Colors.white70,
+              backgroundColor: Colors.black.withValues(alpha: 0.38),
+              shape: const CircleBorder(),
+              padding: const EdgeInsets.all(8),
+              minimumSize: const Size(40, 40),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: const Icon(Icons.more_horiz_rounded, size: 20),
+          );
+        }
         return showStatusLabel
             ? Tooltip(
                 message: '调整《$title》的观看状态',

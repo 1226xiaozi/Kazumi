@@ -426,23 +426,16 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
 
   Widget _grid(List<CollectedBangumi> entries, double contentWidth,
       {required CollectType? type}) {
-    final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
-    final spacing = portrait ? (contentWidth < 600 ? 8.0 : 12.0) : 16.0;
     final scaler = MediaQuery.textScalerOf(context);
-    final textScale = (scaler.scale(14) / 14).clamp(1.0, double.infinity);
-    final minWidth =
-        (contentWidth < 600 ? 136.0 : 172.0) + 32 * (textScale - 1);
-    final columns = portrait
-        ? 3
-        : ((contentWidth + spacing) / (minWidth + spacing)).floor().clamp(1, 6);
+    const columns = 2;
+    const spacing = 12.0;
     final width = (contentWidth - spacing * (columns - 1)) / columns;
     return SliverGrid.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
         crossAxisSpacing: spacing,
-        mainAxisSpacing: portrait ? 12 : spacing,
-        mainAxisExtent: _CollectPosterCard.extent(width, scaler,
-            showRating: widget.showRating, showStatus: type == null),
+        mainAxisSpacing: spacing,
+        mainAxisExtent: _CollectPosterCard.extent(width, scaler),
       ),
       itemCount: entries.length,
       itemBuilder: (context, index) => _CollectPosterCard(
