@@ -14,7 +14,6 @@ import 'package:kazumi/bean/widget/empty_state_widget.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/date_time.dart';
 import 'package:kazumi/utils/search_parser.dart';
@@ -339,7 +338,6 @@ class _SearchPageState extends State<SearchPage> {
         _SearchResultGrid(
           items: items,
           width: width,
-          showRating: GStorage.getSetting(SettingsKeys.showRating),
         ),
       if (allItems.isNotEmpty || !failed)
         SliverToBoxAdapter(
@@ -375,7 +373,7 @@ class _SearchPageState extends State<SearchPage> {
       body: SafeArea(
           top: false,
           child: LayoutBuilder(builder: (context, constraints) {
-            final horizontal = constraints.maxWidth >= 700 ? 32.0 : 20.0;
+            final horizontal = constraints.maxWidth >= 700 ? 32.0 : 12.0;
             final width = math.min(_hasSearched ? 1120.0 : 760.0,
                 constraints.maxWidth - horizontal * 2);
             final inset = (constraints.maxWidth - width) / 2;

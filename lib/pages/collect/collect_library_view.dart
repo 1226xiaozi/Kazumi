@@ -197,7 +197,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
               constraints.maxHeight > 320;
           final width = constraints.maxWidth.clamp(0.0, 1560.0);
           final inset =
-              (constraints.maxWidth - width) / 2 + (compact ? 16.0 : 32.0);
+              (constraints.maxWidth - width) / 2 + (compact ? 12.0 : 32.0);
           final header = _header(query);
           return PageStorage(
             bucket: _resultsStorage,
@@ -257,7 +257,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
             ),
           ),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -331,7 +331,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   Widget _grid(List<CollectedBangumi> entries, double contentWidth,
       {required CollectType? type}) {
     final scaler = MediaQuery.textScalerOf(context);
-    const spacing = 12.0;
+    const spacing = 8.0;
     const columns = 3;
     final width = (contentWidth - spacing * (columns - 1)) / columns;
     return SliverGrid.builder(
