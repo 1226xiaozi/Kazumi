@@ -4,24 +4,24 @@ class _CollectPosterCard extends StatelessWidget {
   const _CollectPosterCard({
     super.key,
     required this.entry,
-    required this.showRating,
     required this.showStatus,
     required this.onOpen,
     required this.onChangeType,
   });
 
   final CollectedBangumi entry;
-  final bool showRating;
   final bool showStatus;
   final VoidCallback onOpen;
   final ValueChanged<CollectType>? onChangeType;
 
-  static const _coverRatio = 0.8;
+  static const _coverRatio = 0.62;
   // Padding above and below the title under the cover.
   static const _footerPadding = 8.0;
+  static const _footerInset = 10.0;
+  static const _titleSize = 15.0;
   static bool _isCompact(double width) => width < 160;
   static double _titleHeight(TextScaler scaler) =>
-      (scaler.scale(14) * 2.7).ceilToDouble();
+      (scaler.scale(_titleSize) * 2.7).ceilToDouble();
 
   static double extent(double width, TextScaler scaler) =>
       width / _coverRatio + _footerPadding * 2 + _titleHeight(scaler);
@@ -35,7 +35,6 @@ class _CollectPosterCard extends StatelessWidget {
     final title = CollectLibraryQuery.titleOf(entry);
     final year = DateTime.tryParse(item.airDate)?.year;
     final type = CollectType.fromValue(entry.type);
-    final hasRating = showRating && item.ratingScore > 0;
 
     return LayoutBuilder(builder: (context, constraints) {
       final compact = _isCompact(constraints.maxWidth);
@@ -47,7 +46,7 @@ class _CollectPosterCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 14,
+              fontSize: _titleSize,
               height: 1.35,
               fontWeight: FontWeight.w600,
             ),
@@ -61,7 +60,7 @@ class _CollectPosterCard extends StatelessWidget {
       );
       final footer = Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: 12,
+          horizontal: _footerInset,
           vertical: _footerPadding,
         ),
         child: titleBlock,
@@ -77,7 +76,6 @@ class _CollectPosterCard extends StatelessWidget {
             title,
             if (showStatus) type.label,
             if (year != null) '$year 年',
-            if (hasRating) '${item.ratingScore.toStringAsFixed(1)} 分',
           ].join('，'),
           child: InkWell(
             onTap: onOpen,
@@ -112,13 +110,11 @@ class _CollectListTile extends StatelessWidget {
   const _CollectListTile({
     super.key,
     required this.entry,
-    required this.showRating,
     required this.onOpen,
     required this.onChangeType,
   });
 
   final CollectedBangumi entry;
-  final bool showRating;
   final VoidCallback onOpen;
   final ValueChanged<CollectType>? onChangeType;
 
@@ -131,8 +127,6 @@ class _CollectListTile extends StatelessWidget {
     final airDate = DateTime.tryParse(item.airDate);
     final metadata = [
       if (airDate != null) '${airDate.year} 年',
-      if (showRating && item.ratingScore > 0)
-        '${item.ratingScore.toStringAsFixed(1)} 分',
     ];
 
     return Material(
@@ -299,12 +293,12 @@ class _CollectEntryMenu extends StatelessWidget {
             tooltip: '管理《$title》 · ${type.label}',
             onPressed: toggle,
             style: IconButton.styleFrom(
-              foregroundColor: Colors.white,
-              disabledForegroundColor: Colors.white70,
-              backgroundColor: Colors.black.withValues(alpha: 0.38),
+              foregroundColor: colors.onSurface,
+              disabledForegroundColor: colors.onSurface.withValues(alpha: 0.6),
+              backgroundColor: colors.surface.withValues(alpha: 0.9),
               shape: const CircleBorder(),
-              padding: const EdgeInsets.all(8),
-              minimumSize: const Size(40, 40),
+              padding: const EdgeInsets.all(6),
+              minimumSize: const Size(36, 36),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             icon: const Icon(Icons.more_horiz_rounded, size: 20),

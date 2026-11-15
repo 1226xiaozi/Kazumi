@@ -26,21 +26,27 @@ class CollectLibraryView extends StatefulWidget {
   const CollectLibraryView({
     super.key,
     required this.entries,
-    required this.showRating,
     required this.onOpen,
     required this.onChangeType,
     required this.canEdit,
     required this.layout,
-    required this.onLayoutChanged,
+    required this.sort,
+    required this.searchExpanded,
+    required this.onSearchExpandedChanged,
+    required this.count,
   });
 
   final List<CollectedBangumi> entries;
-  final bool showRating;
   final ValueChanged<BangumiItem> onOpen;
   final void Function(BangumiItem, CollectType) onChangeType;
   final bool Function(BangumiItem) canEdit;
   final CollectLayout layout;
-  final ValueChanged<CollectLayout> onLayoutChanged;
+  final CollectSort sort;
+  final bool searchExpanded;
+  final ValueChanged<bool> onSearchExpandedChanged;
+
+  /// Mirrors the visible category's total into the app bar title.
+  final ValueNotifier<int> count;
 
   @override
   State<CollectLibraryView> createState() => _CollectLibraryViewState();
@@ -59,9 +65,8 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     for (final type in _collectCategories) type: ScrollController(),
   };
   PageStorageBucket _resultsStorage = PageStorageBucket();
-  CollectSort _sort = CollectSort.recentlyChanged;
   String _query = '';
-  bool _searchExpanded = false;
+  CollectLibraryQuery? _lastQuery;
 
   // The tapped tab while a tap animates, otherwise the dominant page so swipes
   // update mid-gesture. Tab switches rebuild nothing but its listeners.
@@ -71,6 +76,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   void initState() {
     super.initState();
     _selectedType.addListener(_libraryFocus.requestFocus);
+    _selectedType.addListener(_reportCount);
   }
 
   @override
@@ -104,7 +110,16 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   @override
   void didUpdateWidget(covariant CollectLibraryView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.layout != widget.layout) _resetResults();
+    if (oldWidget.layout != widget.layout || oldWidget.sort != widget.sort) {
+      _resetResults();
+    }
+    if (oldWidget.searchExpanded != widget.searchExpanded) {
+      if (widget.searchExpanded) {
+        _openSearch();
+      } else {
+        _clearSearch();
+      }
+    }
   }
 
   @override
@@ -128,23 +143,34 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     }
   }
 
-  void _focusSearch() {
+  /// Mirrors the visible category total into the app bar title.
+  void _reportCount() {
+    final query = _lastQuery;
+    if (query == null) return;
+    final value = query.count(_selectedType.value);
+    if (widget.count.value == value) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.count.value != value) widget.count.value = value;
+    });
+  }
+
+  void _openSearch() {
     final controller = _scrollControllers[_selectedType.value]!;
     if (controller.hasClients) controller.jumpTo(0);
-    setState(() => _searchExpanded = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _searchFocus.requestFocus();
     });
   }
 
-  void _closeSearch() {
-    _libraryFocus.requestFocus();
+  void _focusSearch() => widget.onSearchExpandedChanged(true);
+
+  void _closeSearch() => widget.onSearchExpandedChanged(false);
+
+  void _clearSearch() {
     _searchController.clear();
-    setState(() {
-      _searchExpanded = false;
-      _query = '';
-      _resetResults();
-    });
+    _query = '';
+    _resetResults();
+    _libraryFocus.requestFocus();
   }
 
   void _search(String value) {
@@ -157,6 +183,8 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   @override
   Widget build(BuildContext context) {
     final query = CollectLibraryQuery(widget.entries, _query);
+    _lastQuery = query;
+    _reportCount();
     final platform = Theme.of(context).platform;
     final mobile =
         platform == TargetPlatform.android || platform == TargetPlatform.iOS;
@@ -180,7 +208,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
           final width = constraints.maxWidth.clamp(0.0, 1560.0);
           final inset =
               (constraints.maxWidth - width) / 2 + (compact ? 16.0 : 32.0);
-          final header = _header(query, compact: compact);
+          final header = _header(query);
           return PageStorage(
             bucket: _resultsStorage,
             child: paged
@@ -219,86 +247,30 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     );
   }
 
-  Widget _header(CollectLibraryQuery query, {required bool compact}) {
+  Widget _header(CollectLibraryQuery query) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _CollectCategories(
-                key: _categoriesKey,
-                controller: _tabController,
-                selected: _selectedType,
-                count: query.count,
-              ),
-            ),
-            if (!compact)
-              Padding(
-                padding: const EdgeInsetsDirectional.only(start: 16),
-                child: _countLabel(query),
-              ),
-          ],
+        _CollectCategories(
+          key: _categoriesKey,
+          controller: _tabController,
+          selected: _selectedType,
+          count: query.count,
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            if (!compact)
-              Expanded(
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 360),
-                    child: _searchBar(),
-                  ),
-                ),
-              )
-            else
-              Expanded(child: _countLabel(query)),
-            const SizedBox(width: 12),
-            _CollectSortMenu(
-              value: _sort,
-              showLabel: !compact,
-              onChanged: (value) => setState(() {
-                _sort = value;
-                _resetResults();
-              }),
-            ),
-            if (compact)
-              IconButton(
-                tooltip: _searchExpanded ? '收起搜索' : '搜索收藏',
-                isSelected: _searchExpanded,
-                selectedIcon: const Icon(Icons.search_off_rounded),
-                icon: const Icon(Icons.search_rounded),
-                onPressed: _searchExpanded ? _closeSearch : _focusSearch,
-              ),
-            const SizedBox(width: 8),
-            _CollectLayoutSwitch(
-              value: widget.layout,
-              onChanged: widget.onLayoutChanged,
-            ),
-          ],
-        ),
-        if (compact && _searchExpanded) ...[
+        if (widget.searchExpanded) ...[
           const SizedBox(height: 12),
-          _searchBar(),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: _searchBar(),
+            ),
+          ),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
       ],
     );
   }
-
-  Widget _countLabel(CollectLibraryQuery query) => ValueListenableBuilder(
-        valueListenable: _selectedType,
-        builder: (context, selected, _) => Text(
-          '${query.count(selected)} 部',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-      );
 
   Widget _searchBar() => Semantics(
         label: '搜索收藏',
@@ -331,7 +303,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   Widget _results(CollectLibraryQuery query, CollectType? type,
       {required double inset, Widget? header}) {
     return LayoutBuilder(builder: (context, constraints) {
-      final entries = query.results(type, _sort);
+      final entries = query.results(type, widget.sort);
       final contentWidth = constraints.maxWidth - inset * 2;
       return ScrollbarTheme(
         data: ScrollbarTheme.of(context).copyWith(crossAxisMargin: 0),
@@ -385,7 +357,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
           child: _CollectListTile(
             key: ValueKey('collect-${entries[index].bangumiItem.id}'),
             entry: entries[index],
-            showRating: widget.showRating,
             onOpen: () => widget.onOpen(entries[index].bangumiItem),
             onChangeType: _changeTypeFor(entries[index]),
           ),
@@ -427,8 +398,11 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   Widget _grid(List<CollectedBangumi> entries, double contentWidth,
       {required CollectType? type}) {
     final scaler = MediaQuery.textScalerOf(context);
-    const columns = 2;
     const spacing = 12.0;
+    // Three columns on a phone, more once the window is genuinely wide.
+    final columns = contentWidth < 600
+        ? 3
+        : ((contentWidth + spacing) / (168 + spacing)).floor().clamp(3, 12);
     final width = (contentWidth - spacing * (columns - 1)) / columns;
     return SliverGrid.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -441,7 +415,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
       itemBuilder: (context, index) => _CollectPosterCard(
         key: ValueKey('collect-${entries[index].bangumiItem.id}'),
         entry: entries[index],
-        showRating: widget.showRating,
         showStatus: type == null,
         onOpen: () => widget.onOpen(entries[index].bangumiItem),
         onChangeType: _changeTypeFor(entries[index]),

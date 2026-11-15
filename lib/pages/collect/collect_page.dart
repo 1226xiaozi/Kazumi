@@ -13,8 +13,10 @@ import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/pages/collect/collect_library_query.dart';
 import 'package:kazumi/pages/collect/collect_library_view.dart';
 import 'package:kazumi/pages/collect/collect_sync_dialog.dart';
+import 'package:kazumi/pages/collect/collect_view_menu.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class CollectPage extends StatefulWidget {
@@ -34,6 +36,10 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   bool get _syncDialogOpen => dialogs.isRunning;
   final Set<int> _pendingIds = {};
   late CollectLayout _layout;
+  CollectSort _sort = CollectSort.recentlyChanged;
+  bool _searchExpanded = false;
+  // Kept in the app bar title; the library view reports each category total.
+  final _count = ValueNotifier<int>(0);
 
   Future<bool> _syncStep(
     CollectSyncStep step, {
@@ -66,6 +72,22 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   void _changeLayout(CollectLayout layout) {
     if (_layout == layout) return;
     setState(() => _layout = layout);
+  }
+
+  void _changeSort(CollectSort sort) {
+    if (_sort == sort) return;
+    setState(() => _sort = sort);
+  }
+
+  void _setSearchExpanded(bool value) {
+    if (_searchExpanded == value) return;
+    setState(() => _searchExpanded = value);
+  }
+
+  @override
+  void dispose() {
+    _count.dispose();
+    super.dispose();
   }
 
   Future<void> _changeType(BangumiItem item, CollectType type) async {
@@ -111,14 +133,48 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
       appBar: SysAppBar(
         needTopOffset: false,
         toolbarHeight: 72,
-        title: Text(
-          '追番',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w700),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              '追番',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: ValueListenableBuilder<int>(
+                valueListenable: _count,
+                builder: (context, count, _) => Text(
+                  '$count 部',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
+          IconButton(
+            tooltip: _searchExpanded ? '收起搜索' : '搜索收藏',
+            isSelected: _searchExpanded,
+            selectedIcon: const Icon(Icons.search_off_rounded),
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => _setSearchExpanded(!_searchExpanded),
+          ),
+          CollectViewMenuButton(
+            sort: _sort,
+            layout: _layout,
+            onSortChanged: _changeSort,
+            onLayoutChanged: _changeLayout,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Tooltip(
@@ -139,9 +195,11 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
         child: Observer(
           builder: (context) => CollectLibraryView(
             entries: collectController.collectibles.toList(),
-            showRating: GStorage.getSetting(SettingsKeys.showRating),
             layout: _layout,
-            onLayoutChanged: _changeLayout,
+            sort: _sort,
+            searchExpanded: _searchExpanded,
+            onSearchExpandedChanged: _setSearchExpanded,
+            count: _count,
             canEdit: (item) =>
                 !_syncDialogOpen && !_pendingIds.contains(item.id),
             onOpen: (item) => context.pushNamed('/info/', arguments: item),
