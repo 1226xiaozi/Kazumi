@@ -88,8 +88,7 @@ class BangumiClient {
     if ((requiresAuth || bangumiSyncEnable) && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
-    if (bangumiMirrorCredentials['id']!.isNotEmpty &&
-        _shouldSignProtectedMirrorRequest(url, method)) {
+    if (_shouldSignProtectedMirrorRequest(url, method)) {
       final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final body = data == null ? '' : jsonEncode(data);
       headers['X-AppId'] = bangumiMirrorCredentials['id'];

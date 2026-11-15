@@ -3,6 +3,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/services/network/bangumi_acceleration.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
 
@@ -45,6 +46,9 @@ abstract class _TimelineController with Store {
   @readonly
   TimelineSort _sort = TimelineSort.popularity;
 
+  bool get _bangumiMirrorEnabled =>
+      BangumiAcceleration.current == BangumiAcceleration.mirror;
+
   @action
   Future<void> loadSeason(DateTime date) async {
     if (isLoading) return;
@@ -74,6 +78,11 @@ abstract class _TimelineController with Store {
   @action
   Future<void> _getSchedulesBySeason(DateTime date) async {
     final dateRange = AnimeSeason(date).toSeasonStartAndEnd();
+    if (_bangumiMirrorEnabled) {
+      bangumiCalendar
+          .addAll(await BangumiApi.getBangumiMirrorSeasonCalendar(dateRange));
+      return;
+    }
 
     const pageCount = 4;
     const limit = 20;

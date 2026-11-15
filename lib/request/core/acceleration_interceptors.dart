@@ -18,7 +18,7 @@ class BangumiAccelerationInterceptor extends Interceptor {
           options.requireEch();
         case BangumiAcceleration.mirror:
           options.path =
-              ApiEndpoints.bangumiApiMirrorDomain +
+              ApiEndpoints.bangumiMirrorDomain +
               uri.path +
               (uri.hasQuery ? '?${uri.query}' : '');
           options.queryParameters = {};

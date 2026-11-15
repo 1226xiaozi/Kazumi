@@ -34,9 +34,6 @@ class ApiEndpoints {
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
 
-  /// 无需签名的公共 Bangumi API 反代，供「镜像」加速使用
-  static const String bangumiApiMirrorDomain = 'https://api.bgmapi.com';
-
   /// Kazumi 镜像后端应用更新
   static const String latestAppMirror =
       '$bangumiMirrorDomain/kazumi/v1/app/latest';
