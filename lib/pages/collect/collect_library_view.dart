@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/widget/empty_state_widget.dart';
-import 'package:kazumi/bean/widget/kazumi_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/pages/collect/collect_library_query.dart';
@@ -27,9 +25,6 @@ class CollectLibraryView extends StatefulWidget {
     super.key,
     required this.entries,
     required this.onOpen,
-    required this.onChangeType,
-    required this.canEdit,
-    required this.layout,
     required this.sort,
     required this.searchExpanded,
     required this.onSearchExpandedChanged,
@@ -38,9 +33,6 @@ class CollectLibraryView extends StatefulWidget {
 
   final List<CollectedBangumi> entries;
   final ValueChanged<BangumiItem> onOpen;
-  final void Function(BangumiItem, CollectType) onChangeType;
-  final bool Function(BangumiItem) canEdit;
-  final CollectLayout layout;
   final CollectSort sort;
   final bool searchExpanded;
   final ValueChanged<bool> onSearchExpandedChanged;
@@ -110,9 +102,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
   @override
   void didUpdateWidget(covariant CollectLibraryView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.layout != widget.layout || oldWidget.sort != widget.sort) {
-      _resetResults();
-    }
+    if (oldWidget.sort != widget.sort) _resetResults();
     if (oldWidget.searchExpanded != widget.searchExpanded) {
       if (widget.searchExpanded) {
         _openSearch();
@@ -330,9 +320,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
                     inset, 0, inset, 24 + MediaQuery.paddingOf(context).bottom),
-                sliver: widget.layout == CollectLayout.cards
-                    ? _grid(entries, contentWidth, type: type)
-                    : _list(entries, contentWidth),
+                sliver: _grid(entries, contentWidth, type: type),
               ),
           ],
         ),
@@ -340,69 +328,11 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
     });
   }
 
-  Widget _list(List<CollectedBangumi> entries, double contentWidth) {
-    const spacing = 12.0;
-    final textScale = (MediaQuery.textScalerOf(context).scale(14) / 14)
-        .clamp(1.0, double.infinity);
-    final minWidth = 300 + 160 * (textScale - 1);
-    final preferredWidth = 400 + 160 * (textScale - 1);
-    final maxColumns =
-        ((contentWidth + spacing) / (minWidth + spacing)).floor().clamp(1, 12);
-    final columns = ((contentWidth + spacing) / (preferredWidth + spacing))
-        .ceil()
-        .clamp(1, maxColumns);
-
-    Widget tile(int index) => IndexedSemantics(
-          index: index,
-          child: _CollectListTile(
-            key: ValueKey('collect-${entries[index].bangumiItem.id}'),
-            entry: entries[index],
-            onOpen: () => widget.onOpen(entries[index].bangumiItem),
-            onChangeType: _changeTypeFor(entries[index]),
-          ),
-        );
-
-    return SliverList.builder(
-      itemCount: (entries.length + columns - 1) ~/ columns,
-      addSemanticIndexes: false,
-      itemBuilder: (context, row) {
-        final first = row * columns;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: columns == 1
-              ? tile(first)
-              : IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    spacing: spacing,
-                    children: [
-                      for (var column = 0; column < columns; column++)
-                        Expanded(
-                          child: first + column < entries.length
-                              ? tile(first + column)
-                              : const SizedBox(),
-                        ),
-                    ],
-                  ),
-                ),
-        );
-      },
-    );
-  }
-
-  ValueChanged<CollectType>? _changeTypeFor(CollectedBangumi entry) =>
-      widget.canEdit(entry.bangumiItem)
-          ? (type) => widget.onChangeType(entry.bangumiItem, type)
-          : null;
-
   Widget _grid(List<CollectedBangumi> entries, double contentWidth,
       {required CollectType? type}) {
     final scaler = MediaQuery.textScalerOf(context);
     const spacing = 12.0;
-    // Three columns on a phone, more once the window is genuinely wide.
-    final columns = contentWidth < 600
-        ? 3
-        : ((contentWidth + spacing) / (168 + spacing)).floor().clamp(3, 12);
+    const columns = 3;
     final width = (contentWidth - spacing * (columns - 1)) / columns;
     return SliverGrid.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

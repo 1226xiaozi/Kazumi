@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -7,16 +5,13 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/state_presentation.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
-import 'package:kazumi/modules/collect/collect_layout.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/collect/collect_library_query.dart';
 import 'package:kazumi/pages/collect/collect_library_view.dart';
+import 'package:kazumi/pages/collect/collect_sort_menu.dart';
 import 'package:kazumi/pages/collect/collect_sync_dialog.dart';
-import 'package:kazumi/pages/collect/collect_view_menu.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class CollectPage extends StatefulWidget {
@@ -34,8 +29,6 @@ class CollectPage extends StatefulWidget {
 class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   CollectController get collectController => widget.controller;
   bool get _syncDialogOpen => dialogs.isRunning;
-  final Set<int> _pendingIds = {};
-  late CollectLayout _layout;
   CollectSort _sort = CollectSort.recentlyChanged;
   bool _searchExpanded = false;
   // Kept in the app bar title; the library view reports each category total.
@@ -62,16 +55,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
   @override
   void initState() {
     super.initState();
-    // Read once; page switches never change the saved default.
-    _layout = CollectLayout.fromValue(
-      GStorage.getSetting(SettingsKeys.defaultCollectLayout),
-    );
     collectController.loadCollectibles();
-  }
-
-  void _changeLayout(CollectLayout layout) {
-    if (_layout == layout) return;
-    setState(() => _layout = layout);
   }
 
   void _changeSort(CollectSort sort) {
@@ -90,20 +74,8 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
     super.dispose();
   }
 
-  Future<void> _changeType(BangumiItem item, CollectType type) async {
-    if (_syncDialogOpen || _pendingIds.contains(item.id)) return;
-    setState(() => _pendingIds.add(item.id));
-    try {
-      await collectController.addCollect(item, type: type.value);
-    } catch (_) {
-      KazumiDialog.showToast(message: '修改收藏状态失败，请稍后重试');
-    } finally {
-      if (mounted) setState(() => _pendingIds.remove(item.id));
-    }
-  }
-
   Future<void> _sync() async {
-    if (_syncDialogOpen || _pendingIds.isNotEmpty) return;
+    if (_syncDialogOpen) return;
     final plan = CollectSyncPlan(
       webDavEnabled: GStorage.getSetting(SettingsKeys.webDavEnable),
       webDavCollectiblesEnabled:
@@ -169,11 +141,9 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
             icon: const Icon(Icons.search_rounded),
             onPressed: () => _setSearchExpanded(!_searchExpanded),
           ),
-          CollectViewMenuButton(
+          CollectSortMenuButton(
             sort: _sort,
-            layout: _layout,
             onSortChanged: _changeSort,
-            onLayoutChanged: _changeLayout,
           ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -181,8 +151,7 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
               message: '同步收藏',
               child: StateActionButton.tonal(
                 text: '同步',
-                onPressed:
-                    _syncDialogOpen || _pendingIds.isNotEmpty ? null : _sync,
+                onPressed: _syncDialogOpen ? null : _sync,
                 icon: Icons.sync_rounded,
               ),
             ),
@@ -195,15 +164,11 @@ class _CollectPageState extends State<CollectPage> with KazumiDialogOwner {
         child: Observer(
           builder: (context) => CollectLibraryView(
             entries: collectController.collectibles.toList(),
-            layout: _layout,
             sort: _sort,
             searchExpanded: _searchExpanded,
             onSearchExpandedChanged: _setSearchExpanded,
             count: _count,
-            canEdit: (item) =>
-                !_syncDialogOpen && !_pendingIds.contains(item.id),
             onOpen: (item) => context.pushNamed('/info/', arguments: item),
-            onChangeType: (item, type) => unawaited(_changeType(item, type)),
           ),
         ),
       ),
