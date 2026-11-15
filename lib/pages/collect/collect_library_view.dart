@@ -417,7 +417,6 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
         entry: entries[index],
         showStatus: type == null,
         onOpen: () => widget.onOpen(entries[index].bangumiItem),
-        onChangeType: _changeTypeFor(entries[index]),
       ),
     );
   }

@@ -6,19 +6,17 @@ class _CollectPosterCard extends StatelessWidget {
     required this.entry,
     required this.showStatus,
     required this.onOpen,
-    required this.onChangeType,
   });
 
   final CollectedBangumi entry;
   final bool showStatus;
   final VoidCallback onOpen;
-  final ValueChanged<CollectType>? onChangeType;
 
   static const _coverRatio = 0.62;
   // Padding above and below the title under the cover.
   static const _footerPadding = 8.0;
   static const _footerInset = 10.0;
-  static const _titleSize = 15.0;
+  static const _titleSize = 13.0;
   static bool _isCompact(double width) => width < 160;
   static double _titleHeight(TextScaler scaler) =>
       (scaler.scale(_titleSize) * 2.7).ceilToDouble();
@@ -53,11 +51,6 @@ class _CollectPosterCard extends StatelessWidget {
           ),
         ),
       );
-      final menu = _CollectEntryMenu(
-        entry: entry,
-        onChanged: onChangeType,
-        overlay: true,
-      );
       final footer = Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: _footerInset,
@@ -84,17 +77,7 @@ class _CollectPosterCard extends StatelessWidget {
               children: [
                 AspectRatio(
                   aspectRatio: _coverRatio,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ExcludeSemantics(child: _CollectCover(item: item)),
-                      PositionedDirectional(
-                        top: 8,
-                        end: 8,
-                        child: menu,
-                      ),
-                    ],
-                  ),
+                  child: ExcludeSemantics(child: _CollectCover(item: item)),
                 ),
                 Expanded(child: footer),
               ],
@@ -205,7 +188,6 @@ class _CollectListTile extends StatelessWidget {
                       _CollectEntryMenu(
                         entry: entry,
                         onChanged: onChangeType,
-                        showStatusLabel: true,
                       ),
                     ],
                   ),
@@ -247,26 +229,19 @@ class _CollectEntryMenu extends StatelessWidget {
   const _CollectEntryMenu({
     required this.entry,
     required this.onChanged,
-    this.showStatusLabel = false,
-    this.overlay = false,
   });
   final CollectedBangumi entry;
   final ValueChanged<CollectType>? onChanged;
-  final bool showStatusLabel;
-
-  /// Draws the button as a translucent circle floating over the cover.
-  final bool overlay;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final type = CollectType.fromValue(entry.type);
     final title = CollectLibraryQuery.titleOf(entry);
     return KazumiMenuButton(
       enabled: onChanged != null,
       style: MenuStyle(
         shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(showStatusLabel ? 16 : 20),
+          borderRadius: BorderRadius.circular(16),
         )),
       ),
       menuChildren: [
@@ -287,50 +262,21 @@ class _CollectEntryMenu extends StatelessWidget {
           destructive: true,
         ),
       ],
-      builder: (context, toggle) {
-        if (overlay) {
-          return IconButton(
-            tooltip: '管理《$title》 · ${type.label}',
-            onPressed: toggle,
-            style: IconButton.styleFrom(
-              foregroundColor: colors.onSurface,
-              disabledForegroundColor: colors.onSurface.withValues(alpha: 0.6),
-              backgroundColor: colors.surface.withValues(alpha: 0.9),
-              shape: const CircleBorder(),
-              padding: const EdgeInsets.all(6),
-              minimumSize: const Size(36, 36),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            icon: const Icon(Icons.more_horiz_rounded, size: 20),
-          );
-        }
-        return showStatusLabel
-            ? Tooltip(
-                message: '调整《$title》的观看状态',
-                child: FilledButton.tonalIcon(
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.standard,
-                    tapTargetSize: MaterialTapTargetSize.padded,
-                    minimumSize: const Size(0, 40),
-                    padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 12, 0),
-                  ),
-                  onPressed: toggle,
-                  iconAlignment: IconAlignment.end,
-                  icon: const Icon(Icons.expand_more_rounded, size: 18),
-                  label: Text(type.label),
-                ),
-              )
-            : IconButton(
-                tooltip: '管理《$title》 · ${type.label}',
-                onPressed: toggle,
-                style: IconButton.styleFrom(
-                  foregroundColor: colors.onSurfaceVariant,
-                  minimumSize: const Size(48, 48),
-                  visualDensity: VisualDensity.standard,
-                ),
-                icon: const Icon(Icons.more_horiz_rounded, size: 20),
-              );
-      },
+      builder: (context, toggle) => Tooltip(
+        message: '调整《$title》的观看状态',
+        child: FilledButton.tonalIcon(
+          style: FilledButton.styleFrom(
+            visualDensity: VisualDensity.standard,
+            tapTargetSize: MaterialTapTargetSize.padded,
+            minimumSize: const Size(0, 40),
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 0, 12, 0),
+          ),
+          onPressed: toggle,
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.expand_more_rounded, size: 18),
+          label: Text(type.label),
+        ),
+      ),
     );
   }
 }
