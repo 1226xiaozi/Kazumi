@@ -197,7 +197,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
               constraints.maxHeight > 320;
           final width = constraints.maxWidth.clamp(0.0, 1560.0);
           final inset =
-              (constraints.maxWidth - width) / 2 + (compact ? 12.0 : 32.0);
+              (constraints.maxWidth - width) / 2 + (compact ? 16.0 : 32.0);
           final header = _header(query);
           return PageStorage(
             bucket: _resultsStorage,
@@ -257,7 +257,7 @@ class _CollectLibraryViewState extends State<CollectLibraryView>
             ),
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
       ],
     );
   }

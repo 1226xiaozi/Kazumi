@@ -373,7 +373,7 @@ class _SearchPageState extends State<SearchPage> {
       body: SafeArea(
           top: false,
           child: LayoutBuilder(builder: (context, constraints) {
-            final horizontal = constraints.maxWidth >= 700 ? 32.0 : 12.0;
+            final horizontal = constraints.maxWidth >= 700 ? 32.0 : 20.0;
             final width = math.min(_hasSearched ? 1120.0 : 760.0,
                 constraints.maxWidth - horizontal * 2);
             final inset = (constraints.maxWidth - width) / 2;

@@ -87,10 +87,9 @@ class _SearchResultGrid extends StatelessWidget {
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: _columns,
         crossAxisSpacing: _spacing,
-        mainAxisSpacing: 10,
+        mainAxisSpacing: _spacing,
         mainAxisExtent: cardWidth / _SearchResultCard.coverAspectRatio +
-            _SearchResultCard.titleSpacing +
-            _SearchResultCard.titleHeight,
+            _SearchResultCard.footerHeight,
       ),
       itemCount: items.length,
       itemBuilder: (_, index) => _SearchResultCard(item: items[index]),
@@ -102,9 +101,9 @@ class _SearchResultCard extends StatelessWidget {
   const _SearchResultCard({required this.item});
 
   static const coverAspectRatio = 0.62;
-  static const titleSpacing = 6.0;
   static const titleSize = 13.0;
   static const titleHeight = 36.0;
+  static const footerHeight = 16.0 + titleHeight;
 
   final BangumiItem item;
 
@@ -133,17 +132,22 @@ class _SearchResultCard extends StatelessWidget {
                             height: constraints.maxHeight,
                           )),
                 )),
-            const SizedBox(height: titleSpacing),
             SizedBox(
-                height: titleHeight,
-                child: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: titleSize,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
+                height: footerHeight,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: titleSize,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 )),
           ])),
